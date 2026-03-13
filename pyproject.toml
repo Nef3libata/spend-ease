@@ -1,0 +1,17 @@
+[project]
+name = "spend-ease"
+version = "0.1.0"
+description = "A package that makes spending easier than ever"
+readme = "README.md"
+authors = [
+    { name = "Samaneh Naghdbishi" }
+]
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+spend-ease = "spend_ease:main"
+
+[build-system]
+requires = ["uv_build>=0.10.4,<0.11.0"]
+build-backend = "uv_build"
