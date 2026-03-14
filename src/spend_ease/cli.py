@@ -9,7 +9,7 @@ def main():
     print("Welcome to SpendEase! 💰")
     print()
 
-    action = input("What would you like to do? (add/list): ").strip().lower()
+    action = input("What would you like to do? (add/list/summary): ").strip().lower()
     if action == "add":
         amount = float(input("Amount: "))
         category = input("Category (e.g., Food, Transport): ")
@@ -48,5 +48,47 @@ def main():
         print(f"TOTAL: €{total:.2f}")
         print("=" * 60)
 
+    elif action == "summary":
+        transactions = load_transactions()
+
+        if not transactions:
+            print("\n No transactions yet. Add your first transaction!")
+            return
+
+        category_totals = {}
+        for transaction in transactions:
+            category = transaction.category
+            if category in category_totals:
+                category_totals[category] += transaction.amount
+            else:
+                category_totals[category] = transaction.amount
+
+        total = sum(category_totals.values())
+
+        category_data = []
+        for category, amount in category_totals.items():
+            count = sum(1 for t in transactions if t.category == category)
+            percentage = (amount / total) * 100
+            category_data.append((category, amount, percentage, count))
+
+        category_data.sort(key=lambda x: x[1], reverse=True)
+
+        print("\n" + "=" * 70)
+        print("SPENDING SUMMARY")
+        print("=" * 70)
+        print(f"{'Category':<15} | {'Amount':>10} | {'Percentage':>10} | {'Count':>5}")
+        print("-" * 70)
+
+        for category, amount, percentage, count in category_data:
+            print(
+                f"{category:<15} | €{amount:>9.2f} | {percentage:>9.1f}% | {count:>5}"
+            )
+
+        print("=" * 70)
+        print(
+            f"{'TOTAL':<15} | €{total:>9.2f} | {'100.0%':>10} | {len(transactions):>5}"
+        )
+        print("=" * 70)
+
     else:
-        print("Invalid option. Please choose 'add' or 'list'.")
+        print("Invalid option. Please choose 'add', 'list', or 'summary'.")
