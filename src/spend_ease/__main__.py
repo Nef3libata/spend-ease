@@ -1,6 +1,3 @@
-def main() -> None:
-    print("Hello from SpendEase!")
+from spend_ease.cli import main
 
-
-if __name__ == "__main__":
-    main()
+main()

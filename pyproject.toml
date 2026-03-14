@@ -10,7 +10,7 @@ requires-python = ">=3.13"
 dependencies = []
 
 [project.scripts]
-spend-ease = "spend_ease:main"
+spend-ease = "spend_ease.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.10.4,<0.11.0"]
