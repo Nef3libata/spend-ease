@@ -1,6 +1,6 @@
 [project]
 name = "spend-ease"
-version = "0.1.0"
+version = "1.0.0"
 description = "A package that makes spending easier than ever"
 readme = "README.md"
 authors = [
