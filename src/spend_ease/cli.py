@@ -6,19 +6,37 @@ from spend_ease.storage import save_transaction, load_transactions
 
 
 def add_transaction() -> None:
-    amount = float(input("Amount: "))
-    category = input("Category (e.g., Food, Transport): ")
-    description = input("Description: ")
+    try:
+        amount_str = input("Amount: ")
+        amount = float(amount_str)
 
-    transaction = Transaction(
-        id=str(uuid4()),
-        amount=amount,
-        category=category,
-        date=date.today(),
-        description=description,
-    )
-    save_transaction(transaction)
-    print(f"\n✅ Transaction saved! €{amount} for {category}")
+        if amount <= 0:
+            print("Error: Amount must be greater than 0")
+            return
+
+        category = input("Category (e.g., Food, Transport): ")
+        if not category:
+            while not category:
+                print("Error: Category cannot be empty")
+                category = input("Category (e.g., Food, Transport): ")
+
+        description = input("Description: ")
+
+        transaction = Transaction(
+            id=str(uuid4()),
+            amount=amount,
+            category=category,
+            date=date.today(),
+            description=description,
+        )
+
+        save_transaction(transaction)
+        print(f"\n✅ Transaction saved! €{amount} for {category}")
+
+    except ValueError:
+        print("Error: Please enter a valid number for amount")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 def display_transactions() -> None:
@@ -47,7 +65,7 @@ def show_summary() -> None:
     transactions = load_transactions()
 
     if not transactions:
-        print("\n No transactions yet. Add your first transaction!")
+        print("\nNo transactions yet. Add your first transaction!")
         return
 
     category_totals = {}
