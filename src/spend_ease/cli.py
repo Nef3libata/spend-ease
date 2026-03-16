@@ -1,8 +1,10 @@
 from datetime import date
 from uuid import uuid4
+import calendar
 
 from spend_ease.models import Transaction
 from spend_ease.storage import save_transaction, load_transactions
+from spend_ease.analysis import group_by_month
 
 
 def add_transaction() -> None:
@@ -100,11 +102,48 @@ def show_summary() -> None:
     print("=" * 70)
 
 
+def show_monthly_breakdown() -> None:
+    transactions = load_transactions()
+
+    if not transactions:
+        print("\nNo transactions yet. Add your first transaction!")
+        return
+
+    monthly_data = group_by_month(transactions)
+
+    sorted_months = sorted(monthly_data.keys(), reverse=True)
+
+    print("\n" + "=" * 70)
+    print("MONTHLY SPENDING BREAKDOWN")
+    print("=" * 70)
+    print(f"{'Month':<20} | {'Amount':>12} | {'Transactions':>12} | {'Avg/Day':>10}")
+    print("-" * 70)
+
+    for year, month in sorted_months:
+        data = monthly_data[(year, month)]
+        month_name = calendar.month_name[month]
+        month_year = f"{month_name} {year}"
+        days_in_month = calendar.monthrange(year, month)[1]
+        avg_per_day = data["amount"] / days_in_month
+
+        print(
+            f"{month_year:<20} | €{data['amount']:>10.2f} | "
+            f"{data['count']:>12} | €{avg_per_day:>9.2f}"
+        )
+
+    print("=" * 70)
+    total = sum(d["amount"] for d in monthly_data.values())
+    print(f"{'TOTAL':<20} | €{total:>10.2f}")
+    print("=" * 70)
+
+
 def main():
     print("Welcome to SpendEase! 💰")
     print()
 
-    action = input("What would you like to do? (add/list/summary): ").strip().lower()
+    action = (
+        input("What would you like to do? (add/list/summary/monthly): ").strip().lower()
+    )
     if action == "add":
         add_transaction()
 
@@ -114,5 +153,8 @@ def main():
     elif action == "summary":
         show_summary()
 
+    elif action == "monthly":
+        show_monthly_breakdown()
+
     else:
-        print("Invalid option. Please choose 'add', 'list', or 'summary'.")
+        print("Invalid option. Please choose 'add', 'list', 'summary' or 'monthly'.")
