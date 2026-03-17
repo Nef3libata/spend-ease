@@ -5,6 +5,8 @@ import calendar
 from spend_ease.models import Transaction
 from spend_ease.storage import save_transaction, load_transactions
 from spend_ease.analysis import group_by_month
+from spend_ease.models import Budget
+from spend_ease.budget_storage import get_budget, save_budget, load_budgets
 
 
 def add_transaction() -> None:
@@ -88,18 +90,36 @@ def show_summary() -> None:
 
     category_data.sort(key=lambda x: x[1], reverse=True)
 
-    print("\n" + "=" * 70)
+    print("\n" + "=" * 90)
     print("SPENDING SUMMARY")
-    print("=" * 70)
-    print(f"{'Category':<15} | {'Amount':>10} | {'Percentage':>10} | {'Count':>5}")
-    print("-" * 70)
+    print("=" * 90)
+    print(
+        f"{'Category':<15} | {'Spent':>10} | {'Budget':>10} | {'Status':>12} | {'%':>6} | {'Count':>5}"
+    )
+    print("-" * 90)
 
     for category, amount, percentage, count in category_data:
-        print(f"{category:<15} | €{amount:>9.2f} | {percentage:>9.1f}% | {count:>5}")
+        budget = get_budget(category)
+        if budget:
+            remaining = budget.limit - amount
+            if remaining >= 0:
+                status = f"€{remaining:.2f} left"
+            else:
+                status = f"€{abs(remaining):.2f} over"
+            budget_str = f"€{budget.limit:>8.2f}"
+        else:
+            status = "No budget"
+            budget_str = "-"
 
-    print("=" * 70)
-    print(f"{'TOTAL':<15} | €{total:>9.2f} | {'100.0%':>10} | {len(transactions):>5}")
-    print("=" * 70)
+        print(
+            f"{category:<15} | €{amount:>9.2f} | {budget_str:>10} | {status:>12} | {percentage:>5.1f}% | {count:>5}"
+        )
+
+    print("=" * 90)
+    print(
+        f"{'TOTAL':<15} | €{total:>9.2f} | {'':<10} | {'':<12} | {'100.0%':>6} | {len(transactions):>5}"
+    )
+    print("=" * 90)
 
 
 def show_monthly_breakdown() -> None:
@@ -137,12 +157,60 @@ def show_monthly_breakdown() -> None:
     print("=" * 70)
 
 
+def set_budget_command() -> None:
+
+    try:
+        category = input("Category: ").strip()
+        if not category:
+            print("Error: Category cannot be empty")
+            return
+
+        limit_str = input("Monthly budget limit: ")
+        limit = float(limit_str)
+
+        if limit <= 0:
+            print("Error: Budget must be greater than 0")
+            return
+
+        budget = Budget(category=category, limit=limit, period="monthly")
+        save_budget(budget)
+        print(f"\nBudget set! {category}: €{limit:.2f}/month")
+
+    except ValueError:
+        print("Error: Please enter a valid number for budget")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+def show_budgets() -> None:
+    budgets = load_budgets()
+
+    if not budgets:
+        print("\nNo budgets set yet. Use 'set-budget' to create one!")
+        return
+
+    print("\n" + "=" * 50)
+    print("YOUR BUDGETS")
+    print("=" * 50)
+    print(f"{'Category':<20} | {'Limit':>15}")
+    print("-" * 50)
+
+    for budget in budgets:
+        print(f"{budget.category:<20} | €{budget.limit:>13.2f}/month")
+
+    print("=" * 50)
+
+
 def main():
     print("Welcome to SpendEase! 💰")
     print()
 
     action = (
-        input("What would you like to do? (add/list/summary/monthly): ").strip().lower()
+        input(
+            "What would you like to do? (add/list/summary/monthly/set-budget/budgets): "
+        )
+        .strip()
+        .lower()
     )
     if action == "add":
         add_transaction()
@@ -156,5 +224,13 @@ def main():
     elif action == "monthly":
         show_monthly_breakdown()
 
+    elif action == "set-budget":
+        set_budget_command()
+
+    elif action == "budgets":
+        show_budgets()
+
     else:
-        print("Invalid option. Please choose 'add', 'list', 'summary' or 'monthly'.")
+        print(
+            "Invalid option. Please choose 'add', 'list', 'summary', 'monthly', 'set-budget', or 'budgets'."
+        )
