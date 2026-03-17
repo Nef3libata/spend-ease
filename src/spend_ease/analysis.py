@@ -1,4 +1,3 @@
-from datetime import date
 from collections import defaultdict
 from spend_ease.models import Transaction
 

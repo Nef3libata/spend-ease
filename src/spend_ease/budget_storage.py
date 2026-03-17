@@ -7,7 +7,7 @@ from spend_ease.models import Budget
 DEFAULT_PATH = Path.home() / ".spend_ease" / "budget_storage.json"
 
 
-def save_budget(budget):
+def save_budget(budget: Budget) -> None:
     if DEFAULT_PATH.exists():
         with open(DEFAULT_PATH, "r") as file:
             budgets = json.load(file)
@@ -37,7 +37,7 @@ def load_budgets() -> list[Budget]:
     return budgets
 
 
-def get_budget(category):
+def get_budget(category: str) -> Budget | None:
     budgets = load_budgets()
 
     for budget in budgets:
