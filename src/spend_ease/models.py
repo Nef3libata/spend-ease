@@ -10,3 +10,10 @@ class Transaction:
     category: str
     date: date
     description: str
+
+
+@dataclass
+class Budget:
+    category: str
+    limit: float
+    period: str
