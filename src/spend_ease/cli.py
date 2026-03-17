@@ -18,11 +18,11 @@ def add_transaction() -> None:
             print("Error: Amount must be greater than 0")
             return
 
-        category = input("Category (e.g., Food, Transport): ")
+        category = input("Category (e.g., Food, Transport): ").strip().title()
         if not category:
             while not category:
                 print("Error: Category cannot be empty")
-                category = input("Category (e.g., Food, Transport): ")
+                category = input("Category (e.g., Food, Transport): ").strip().title()
 
         description = input("Description: ")
 
@@ -160,7 +160,7 @@ def show_monthly_breakdown() -> None:
 def set_budget_command() -> None:
 
     try:
-        category = input("Category: ").strip()
+        category = input("Category: ").strip().title()
         if not category:
             print("Error: Category cannot be empty")
             return
