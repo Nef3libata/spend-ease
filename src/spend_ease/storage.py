@@ -52,7 +52,22 @@ def delete_transaction(transaction_id: str) -> bool:
     if len(transactions) < original_count:
         DEFAULT_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(DEFAULT_PATH, "w") as file:
-            data = [asdict(t) for t in transactions]
-            json.dump(data, file, indent=2, default=str)
+            json.dump([asdict(t) for t in transactions], file, indent=2, default=str)
         return True
+    return False
+
+
+def update_transaction(transaction_id: str, updated_transaction: Transaction) -> bool:
+    transactions = load_transactions()
+
+    for idx, transaction in enumerate(transactions):
+        if transaction.id == transaction_id:
+            transactions[idx] = updated_transaction
+
+            DEFAULT_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(DEFAULT_PATH, "w") as file:
+                json.dump(
+                    [asdict(t) for t in transactions], file, indent=2, default=str
+                )
+            return True
     return False
