@@ -3,7 +3,12 @@ from uuid import uuid4
 import calendar
 
 from spend_ease.models import Transaction
-from spend_ease.storage import save_transaction, load_transactions, delete_transaction
+from spend_ease.storage import (
+    save_transaction,
+    load_transactions,
+    delete_transaction,
+    update_transaction,
+)
 from spend_ease.analysis import group_by_month
 from spend_ease.models import Budget
 from spend_ease.budget_storage import get_budget, save_budget, load_budgets
@@ -122,6 +127,101 @@ def delete_transaction_command() -> None:
 
     except ValueError:
         print("Error: Please enter a valid number")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+def edit_transaction_command() -> None:
+    transactions = load_transactions()
+
+    if not transactions:
+        print("\nNo transactions to edit!")
+        return
+
+    print("\n" + "=" * 80)
+    print("SELECT TRANSACTION TO EDIT")
+    print("=" * 80)
+    print(
+        f"{'#':<4} | {'Date':<12} | {'Category':<12} | {'Amount':>10} | {'Description':<20}"
+    )
+    print("-" * 80)
+
+    for idx, transaction in enumerate(transactions, 1):
+        print(
+            f"{idx:<4} | {transaction.date!s:<12} | {transaction.category:<12} | "
+            f"€{transaction.amount:>9.2f} | {transaction.description:<20}"
+        )
+
+    print("=" * 80)
+
+    try:
+        choice = input("\nEnter transaction number to edit (or 'cancel'): ").strip()
+
+        if choice.lower() == "cancel":
+            print("Cancelled.")
+            return
+
+        idx = int(choice)
+
+        if idx < 1 or idx > len(transactions):
+            print(f"Error: Please enter a number between 1 and {len(transactions)}")
+            return
+
+        transaction_to_edit = transactions[idx - 1]
+
+        print(
+            f"\nEditing transaction: €{transaction_to_edit.amount:.2f} - {transaction_to_edit.category} - {transaction_to_edit.description}"
+        )
+        print("(Press Enter to keep current value)\n")
+
+        amount_input = input(f"Amount [{transaction_to_edit.amount}]: ").strip()
+        new_amount = float(amount_input) if amount_input else transaction_to_edit.amount
+
+        if new_amount <= 0:
+            print("Error: Amount must be greater than 0")
+            return
+
+        category_input = (
+            input(f"Category [{transaction_to_edit.category}]: ").strip().title()
+        )
+        new_category = (
+            category_input if category_input else transaction_to_edit.category
+        )
+
+        description_input = input(
+            f"Description [{transaction_to_edit.description}]: "
+        ).strip()
+        new_description = (
+            description_input if description_input else transaction_to_edit.description
+        )
+
+        date_input = input(
+            f"Date [{transaction_to_edit.date}] (YYYY-MM-DD or Enter to keep): "
+        ).strip()
+        if date_input:
+            try:
+                new_date = date.fromisoformat(date_input)
+            except ValueError:
+                print("Error: Invalid date format. Use YYYY-MM-DD")
+                return
+        else:
+            new_date = transaction_to_edit.date
+
+        updated_transaction = Transaction(
+            id=transaction_to_edit.id,
+            amount=new_amount,
+            category=new_category,
+            date=new_date,
+            description=new_description,
+        )
+
+        if update_transaction(transaction_to_edit.id, updated_transaction):
+            print("\nTransaction updated successfully!")
+        else:
+            print("\nError: Transaction not found.")
+
+    except ValueError:
+        print("Error: Please enter a valid number for amount")
     except Exception as e:
         print(f"An error occurred: {e}")
 
@@ -268,7 +368,7 @@ def main():
 
     action = (
         input(
-            "What would you like to do? (add/list/delete/summary/monthly/set-budget/budgets): "
+            "What would you like to do? (add/list/edit/delete/summary/monthly/set-budget/budgets): "
         )
         .strip()
         .lower()
@@ -278,6 +378,9 @@ def main():
 
     elif action == "list":
         display_transactions()
+
+    elif action == "edit":
+        edit_transaction_command()
 
     elif action == "delete":
         delete_transaction_command()
@@ -296,5 +399,5 @@ def main():
 
     else:
         print(
-            "Invalid option. Please choose 'add', 'list', 'delete', 'summary', 'monthly', 'set-budget', or 'budgets'."
+            "Invalid option. Please choose 'add', 'list', 'edit', 'delete', 'summary', 'monthly', 'set-budget', or 'budgets'."
         )
