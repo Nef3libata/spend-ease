@@ -12,6 +12,7 @@ from spend_ease.storage import (
 from spend_ease.analysis import group_by_month
 from spend_ease.models import Budget
 from spend_ease.budget_storage import get_budget, save_budget, load_budgets
+from spend_ease.csv_handler import export_to_csv, import_from_csv
 
 
 def add_transaction() -> None:
@@ -362,13 +363,48 @@ def show_budgets() -> None:
     print("=" * 50)
 
 
+def export_csv_command() -> None:
+    filepath = input("Enter filepath to export to (e.g., transactions.csv): ").strip()
+
+    if not filepath:
+        print("Error: Filepath cannot be empty")
+        return
+
+    if not filepath.endswith(".csv"):
+        filepath += ".csv"
+
+    if export_to_csv(filepath):
+        print(f"\nTransactions exported successfully to {filepath}")
+    else:
+        print("\nExport failed. No transactions to export or an error occurred.")
+
+
+def import_csv_command() -> None:
+    filepath = input("Enter filepath to import from (e.g., transactions.csv): ").strip()
+
+    if not filepath:
+        print("Error: Filepath cannot be empty")
+        return
+
+    imported, errors = import_from_csv(filepath)
+
+    if imported > 0:
+        print(f"\nSuccessfully imported {imported} transaction(s)")
+
+    if errors > 0:
+        print(f"Skipped {errors} transaction(s) (duplicates or errors)")
+
+    if imported == 0 and errors == 0:
+        print("\nImport failed. File not found or empty.")
+
+
 def main():
     print("Welcome to SpendEase! 💰")
     print()
 
     action = (
         input(
-            "What would you like to do? (add/list/edit/delete/summary/monthly/set-budget/budgets): "
+            "What would you like to do? (add/list/edit/delete/summary/monthly/set-budget/budgets/export/import): "
         )
         .strip()
         .lower()
@@ -397,7 +433,13 @@ def main():
     elif action == "budgets":
         show_budgets()
 
+    elif action == "export":
+        export_csv_command()
+
+    elif action == "import":
+        import_csv_command()
+
     else:
         print(
-            "Invalid option. Please choose 'add', 'list', 'edit', 'delete', 'summary', 'monthly', 'set-budget', or 'budgets'."
+            "Invalid option. Please choose 'add', 'list', 'edit', 'delete', 'summary', 'monthly', 'set-budget', 'budgets', 'export', or 'import'."
         )
