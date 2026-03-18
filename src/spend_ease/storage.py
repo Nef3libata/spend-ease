@@ -41,3 +41,18 @@ def load_transactions() -> list[Transaction]:
         for item in data
     ]
     return transactions
+
+
+def delete_transaction(transaction_id: str) -> bool:
+    transactions = load_transactions()
+    original_count = len(transactions)
+
+    transactions = [t for t in transactions if t.id != transaction_id]
+
+    if len(transactions) < original_count:
+        DEFAULT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEFAULT_PATH, "w") as file:
+            data = [asdict(t) for t in transactions]
+            json.dump(data, file, indent=2, default=str)
+        return True
+    return False

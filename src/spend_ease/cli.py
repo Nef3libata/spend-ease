@@ -3,7 +3,7 @@ from uuid import uuid4
 import calendar
 
 from spend_ease.models import Transaction
-from spend_ease.storage import save_transaction, load_transactions
+from spend_ease.storage import save_transaction, load_transactions, delete_transaction
 from spend_ease.analysis import group_by_month
 from spend_ease.models import Budget
 from spend_ease.budget_storage import get_budget, save_budget, load_budgets
@@ -63,6 +63,67 @@ def display_transactions() -> None:
     print("=" * 60)
     print(f"TOTAL: €{total:.2f}")
     print("=" * 60)
+
+
+def delete_transaction_command() -> None:
+    transactions = load_transactions()
+
+    if not transactions:
+        print("\nNo transactions to delete!")
+        return
+
+    print("\n" + "=" * 80)
+    print("SELECT TRANSACTION TO DELETE")
+    print("=" * 80)
+    print(
+        f"{'#':<4} | {'Date':<12} | {'Category':<12} | {'Amount':>10} | {'Description':<20}"
+    )
+    print("-" * 80)
+
+    for idx, transaction in enumerate(transactions, 1):
+        print(
+            f"{idx:<4} | {transaction.date!s:<12} | {transaction.category:<12} | "
+            f"€{transaction.amount:>9.2f} | {transaction.description:<20}"
+        )
+
+    print("=" * 80)
+
+    try:
+        choice = input("\nEnter transaction number to delete (or 'cancel'): ").strip()
+
+        if choice.lower() == "cancel":
+            print("Cancelled.")
+            return
+
+        idx = int(choice)
+
+        if idx < 1 or idx > len(transactions):
+            print(f"Error: Please enter a number between 1 and {len(transactions)}")
+            return
+
+        transaction_to_delete = transactions[idx - 1]
+
+        confirm = (
+            input(
+                f"\nDelete €{transaction_to_delete.amount:.2f} - {transaction_to_delete.category} - "
+                f"{transaction_to_delete.description}? (yes/no): "
+            )
+            .strip()
+            .lower()
+        )
+
+        if confirm == "yes":
+            if delete_transaction(transaction_to_delete.id):
+                print("\nTransaction deleted successfully!")
+            else:
+                print("\nError: Transaction not found.")
+        else:
+            print("Cancelled.")
+
+    except ValueError:
+        print("Error: Please enter a valid number")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 def show_summary() -> None:
@@ -207,7 +268,7 @@ def main():
 
     action = (
         input(
-            "What would you like to do? (add/list/summary/monthly/set-budget/budgets): "
+            "What would you like to do? (add/list/delete/summary/monthly/set-budget/budgets): "
         )
         .strip()
         .lower()
@@ -217,6 +278,9 @@ def main():
 
     elif action == "list":
         display_transactions()
+
+    elif action == "delete":
+        delete_transaction_command()
 
     elif action == "summary":
         show_summary()
@@ -232,5 +296,5 @@ def main():
 
     else:
         print(
-            "Invalid option. Please choose 'add', 'list', 'summary', 'monthly', 'set-budget', or 'budgets'."
+            "Invalid option. Please choose 'add', 'list', 'delete', 'summary', 'monthly', 'set-budget', or 'budgets'."
         )
