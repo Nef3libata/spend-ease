@@ -7,7 +7,9 @@ authors = [
     { name = "Samaneh Naghdbishi" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "matplotlib>=3.8.0",
+]
 
 [project.scripts]
 spend-ease = "spend_ease.cli:main"
