@@ -13,6 +13,7 @@ from spend_ease.analysis import group_by_month
 from spend_ease.models import Budget
 from spend_ease.budget_storage import get_budget, save_budget, load_budgets
 from spend_ease.csv_handler import export_to_csv, import_from_csv
+from spend_ease.visualize import create_all_charts
 
 
 def add_transaction() -> None:
@@ -398,13 +399,39 @@ def import_csv_command() -> None:
         print("\nImport failed. File not found or empty.")
 
 
+def visualize_command() -> None:
+    output_dir = input(
+        "Enter directory to save charts (or press Enter for current directory): "
+    ).strip()
+
+    if not output_dir:
+        output_dir = "."
+
+    print("\nGenerating charts...")
+
+    pie_success, bar_success = create_all_charts(output_dir)
+
+    if pie_success:
+        print(f"Category pie chart saved to: {output_dir}/spending_by_category.png")
+    else:
+        print("Could not create category chart (no transactions)")
+
+    if bar_success:
+        print(f"Monthly bar chart saved to: {output_dir}/monthly_spending.png")
+    else:
+        print("Could not create monthly chart (no transactions)")
+
+    if pie_success or bar_success:
+        print("\nCharts generated successfully!")
+
+
 def main():
     print("Welcome to SpendEase! 💰")
     print()
 
     action = (
         input(
-            "What would you like to do? (add/list/edit/delete/summary/monthly/set-budget/budgets/export/import): "
+            "What would you like to do? (add/list/edit/delete/summary/monthly/set-budget/budgets/export/import/visualize): "
         )
         .strip()
         .lower()
@@ -439,7 +466,10 @@ def main():
     elif action == "import":
         import_csv_command()
 
+    elif action == "visualize":
+        visualize_command()
+
     else:
         print(
-            "Invalid option. Please choose 'add', 'list', 'edit', 'delete', 'summary', 'monthly', 'set-budget', 'budgets', 'export', or 'import'."
+            "Invalid option. Please choose 'add', 'list', 'edit', 'delete', 'summary', 'monthly', 'set-budget', 'budgets', 'export', 'import', or 'visualize'."
         )
