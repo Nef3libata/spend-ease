@@ -287,6 +287,36 @@ def cmd_visualize(output_dir: str = ".") -> None:
         print("No transactions to chart.")
 
 
+def cmd_recurring() -> None:
+    from spend_ease.recurring import detect_recurring_payments
+
+    transactions = load_transactions()
+    recurring = detect_recurring_payments(transactions)
+
+    if not recurring:
+        print("\nNo recurring payments detected yet.")
+        print("(Need at least 2 similar transactions ~30 days apart)")
+        return
+
+    print("\n" + "=" * 75)
+    print("RECURRING PAYMENTS DETECTED")
+    print("=" * 75)
+    print(f"{'Category':<15} {'Amount':>10} {'Period':>12} {'Last Payment':>15}")
+    print("-" * 75)
+
+    monthly_total = 0
+    for r in recurring:
+        monthly_amount = r["amount"] * (30 / r["interval_days"])
+        monthly_total += monthly_amount
+        print(
+            f"{r['category']:<15} €{r['amount']:>9.2f} {r['period']:>12} {str(r['last_date']):>15}"
+        )
+
+    print("=" * 75)
+    print(f"{'Estimated Monthly Fixed Costs':<30} €{monthly_total:>9.2f}")
+    print("=" * 75)
+
+
 REPL_HELP = """
 Commands:
   add <amount> <category> [description]   Add a transaction  (e.g. add 25 food lunch)
@@ -294,6 +324,7 @@ Commands:
   list                                    Show all transactions
   summary                                 Spending summary with budget warnings
   monthly                                 Monthly spending breakdown
+  recurring                               Detect recurring payments (rent, subscriptions)
   edit                                    Edit a transaction
   delete                                  Delete a transaction
   budget set <category> <limit>           Set monthly budget  (e.g. budget set food 200)
@@ -381,6 +412,8 @@ def run_repl() -> None:
             cmd_summary()
         elif command == "monthly":
             cmd_monthly()
+        elif command == "recurring":
+            cmd_recurring()
         elif command == "edit":
             cmd_edit_interactive()
         elif command == "delete":
