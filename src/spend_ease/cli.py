@@ -317,6 +317,81 @@ def cmd_recurring() -> None:
     print("=" * 75)
 
 
+def cmd_forecast(months: int = 3) -> None:
+    from spend_ease.forecast import forecast_balance
+    from spend_ease.settings import get_setting
+    import calendar
+
+    monthly_income = get_setting("monthly_income")
+    current_balance = get_setting("current_balance")
+
+    if monthly_income == 0:
+        print("\n Please set your monthly income first:")
+        print("   income set <amount>")
+        print("\nExample: income set 1200")
+        return
+
+    transactions = load_transactions()
+    forecast = forecast_balance(current_balance, monthly_income, transactions, months)
+
+    print("\n" + "=" * 80)
+    print(f"BALANCE FORECAST (Next {months} Months)")
+    print("=" * 80)
+    print(f"{'Month':<20} {'Fixed Costs':>12} {'Variable':>12} {'Balance':>15}")
+    print("-" * 80)
+
+    for f in forecast:
+        month_name = calendar.month_name[f["month"]]
+        month_year = f"{month_name} {f['year']}"
+        print(
+            f"{month_year:<20} €{f['fixed_costs']:>10.2f} €{f['variable_costs']:>10.2f} €{f['projected_balance']:>13.2f}"
+        )
+
+    print("=" * 80)
+    final_balance = forecast[-1]["projected_balance"]
+    if final_balance > current_balance:
+        print(f"💰 You'll save €{final_balance - current_balance:.2f} in {months} months")
+    else:
+        print(f"You'll spend €{current_balance - final_balance:.2f} of savings in {months} months")
+    print("=" * 80)
+
+
+def cmd_income_set(amount: float) -> None:
+    from spend_ease.settings import save_setting
+
+    save_setting("monthly_income", amount)
+    print(f"Monthly income set to €{amount:.2f}")
+
+
+def cmd_balance_set(amount: float) -> None:
+    from spend_ease.settings import save_setting
+
+    save_setting("current_balance", amount)
+    print(f"Current balance set to €{amount:.2f}")
+
+
+def cmd_settings() -> None:
+    from spend_ease.settings import load_settings
+
+    settings = load_settings()
+
+    print("\n" + "=" * 50)
+    print("YOUR SETTINGS")
+    print("=" * 50)
+
+    if not settings:
+        print("No settings configured yet.")
+        print("\nSet your income: income set <amount>")
+        print("Set your balance: balance set <amount>")
+    else:
+        if "monthly_income" in settings:
+            print(f"Monthly Income:   €{settings['monthly_income']:.2f}")
+        if "current_balance" in settings:
+            print(f"Current Balance:  €{settings['current_balance']:.2f}")
+
+    print("=" * 50)
+
+
 REPL_HELP = """
 Commands:
   add <amount> <category> [description]   Add a transaction  (e.g. add 25 food lunch)
@@ -325,10 +400,14 @@ Commands:
   summary                                 Spending summary with budget warnings
   monthly                                 Monthly spending breakdown
   recurring                               Detect recurring payments (rent, subscriptions)
+  forecast [months]                       Predict future balance (e.g. forecast 3)
   edit                                    Edit a transaction
   delete                                  Delete a transaction
   budget set <category> <limit>           Set monthly budget  (e.g. budget set food 200)
   budget list                             Show all budgets
+  income set <amount>                     Set monthly income  (e.g. income set 1200)
+  balance set <amount>                    Set current balance (e.g. balance set 500)
+  settings                                Show your settings
   export [filename]                       Export to CSV
   import <filename>                       Import from CSV
   visualize [directory]                   Generate spending charts
@@ -414,6 +493,27 @@ def run_repl() -> None:
             cmd_monthly()
         elif command == "recurring":
             cmd_recurring()
+        elif command == "forecast":
+            months = int(rest[0]) if rest and rest[0].isdigit() else 3
+            cmd_forecast(months)
+        elif command == "income":
+            if rest and rest[0] == "set" and len(rest) > 1:
+                try:
+                    cmd_income_set(float(rest[1]))
+                except ValueError:
+                    print("Error: Invalid amount")
+            else:
+                print("Usage: income set <amount>")
+        elif command == "balance":
+            if rest and rest[0] == "set" and len(rest) > 1:
+                try:
+                    cmd_balance_set(float(rest[1]))
+                except ValueError:
+                    print("Error: Invalid amount")
+            else:
+                print("Usage: balance set <amount>")
+        elif command == "settings":
+            cmd_settings()
         elif command == "edit":
             cmd_edit_interactive()
         elif command == "delete":
