@@ -12,7 +12,12 @@ from spend_ease.storage import (
 )
 from spend_ease.budget_storage import get_budget, save_budget, load_budgets
 from spend_ease.analysis import group_by_month
-from spend_ease.csv_handler import export_to_csv, import_from_csv
+from spend_ease.csv_handler import (
+    export_to_csv,
+    import_from_csv,
+    import_bank_csv,
+    read_csv_headers,
+)
 from spend_ease.visualize import create_all_charts
 
 
@@ -276,6 +281,74 @@ def cmd_import(filepath: str) -> None:
         print("Import failed. File not found or empty.")
 
 
+def _pick_column(headers: list[str], prompt: str, required: bool = True) -> str | None:
+    """Ask the user to pick a column number from the header list."""
+    while True:
+        choice = input(prompt).strip()
+
+        if not choice and not required:
+            return None
+
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(headers):
+                return headers[idx]
+
+        print(f"  Please enter a number between 1 and {len(headers)}")
+
+
+def cmd_bank_import(filepath: str) -> None:
+    from pathlib import Path
+
+    if not Path(filepath).exists():
+        print(f"File not found: {filepath}")
+        return
+
+    try:
+        headers = read_csv_headers(filepath)
+    except Exception:
+        print("Could not read CSV file.")
+        return
+
+    print("\nFound columns:")
+    for idx, header in enumerate(headers, 1):
+        print(f"  {idx}. {header}")
+
+    print()
+    date_col = _pick_column(headers, "Which column has the DATE? : ")
+    amount_col = _pick_column(headers, "Which column has the AMOUNT? : ")
+    desc_col = _pick_column(headers, "Which column has the DESCRIPTION? : ")
+    status_col = _pick_column(
+        headers, "Which column has the STATUS? (Enter to skip): ", required=False
+    )
+
+    skip_status = None
+    if status_col:
+        skip_status = input("Skip transactions with status: ").strip() or None
+
+    print(f"\nImporting from {filepath}...")
+
+    imported, skipped, errors = import_bank_csv(
+        filepath,
+        date_column=date_col,
+        amount_column=amount_col,
+        description_column=desc_col,
+        status_column=status_col,
+        skip_status=skip_status,
+    )
+
+    if imported > 0:
+        print(f"Imported {imported} transaction(s)")
+        print("Auto-categorized by merchant name.")
+        print("Use 'summary' to see spending by category.")
+    if skipped > 0:
+        print(f"Skipped {skipped} (income or reverted)")
+    if errors > 0:
+        print(f"Errors: {errors}")
+    if imported == 0 and errors == 0 and skipped == 0:
+        print("No transactions found to import.")
+
+
 def cmd_visualize(output_dir: str = ".") -> None:
     print("Generating charts...")
     pie_ok, bar_ok = create_all_charts(output_dir)
@@ -350,9 +423,13 @@ def cmd_forecast(months: int = 3) -> None:
     print("=" * 80)
     final_balance = forecast[-1]["projected_balance"]
     if final_balance > current_balance:
-        print(f"💰 You'll save €{final_balance - current_balance:.2f} in {months} months")
+        print(
+            f"💰 You'll save €{final_balance - current_balance:.2f} in {months} months"
+        )
     else:
-        print(f"You'll spend €{current_balance - final_balance:.2f} of savings in {months} months")
+        print(
+            f"You'll spend €{current_balance - final_balance:.2f} of savings in {months} months"
+        )
     print("=" * 80)
 
 
@@ -409,7 +486,8 @@ Commands:
   balance set <amount>                    Set current balance (e.g. balance set 500)
   settings                                Show your settings
   export [filename]                       Export to CSV
-  import <filename>                       Import from CSV
+  import <filename>                       Import from SpendEase CSV
+  bank-import <filename>                  Import from bank CSV (auto-categorizes)
   visualize [directory]                   Generate spending charts
   help                                    Show this help
   quit                                    Exit
@@ -527,6 +605,11 @@ def run_repl() -> None:
                 cmd_import(rest[0])
             else:
                 print("Usage: import <filename.csv>")
+        elif command == "bank-import":
+            if rest:
+                cmd_bank_import(rest[0])
+            else:
+                print("Usage: bank-import <filename.csv>")
         elif command == "visualize":
             cmd_visualize(rest[0] if rest else ".")
         else:
