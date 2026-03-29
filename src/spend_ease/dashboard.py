@@ -1,6 +1,8 @@
 import tempfile
 from collections import defaultdict
 from pathlib import Path
+import uuid
+from datetime import date
 
 import plotly.express as px
 import streamlit as st
@@ -8,8 +10,8 @@ import streamlit as st
 from spend_ease.analysis import group_by_month
 from spend_ease.budget_storage import get_budget, load_budgets, save_budget
 from spend_ease.csv_handler import import_bank_csv
-from spend_ease.models import Budget
-from spend_ease.storage import load_transactions
+from spend_ease.models import Budget, Transaction
+from spend_ease.storage import load_transactions, save_transaction
 
 
 # Page config
@@ -37,9 +39,7 @@ def get_category_totals(transactions):
         categories[transaction.category]["amount"] += transaction.amount
         categories[transaction.category]["count"] += 1
 
-    return dict(
-        sorted(categories.items(), key=lambda x: x[1]["amount"], reverse=True)
-    )
+    return dict(sorted(categories.items(), key=lambda x: x[1]["amount"], reverse=True))
 
 
 # Overview page
@@ -128,9 +128,66 @@ def page_transactions():
     st.title("Transactions")
 
     transactions = load_transactions()
+    existing_categories = (
+        sorted(set(t.category for t in transactions)) if transactions else []
+    )
+
+    with st.expander("Add New Transaction", expanded=False):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            amount = st.number_input(
+                "Amount (€)",
+                min_value=0.01,
+                step=0.01,
+                format="%.2f",
+            )
+
+            if existing_categories:
+                category_mode = st.radio(
+                    "Category",
+                    ["Select existing", "Create new"],
+                    horizontal=True,
+                )
+
+                if category_mode == "Select existing":
+                    category = st.selectbox("Choose category", existing_categories)
+                else:
+                    category = st.text_input("New category name")
+            else:
+                category = st.text_input("Category")
+
+        with col2:
+            transaction_date = st.date_input(
+                "Date",
+                value=date.today(),
+                max_value=date.today(),
+            )
+
+            description = st.text_input("Description (optional)")
+
+        if st.button("Add Transaction", type="primary", use_container_width=True):
+            if not category or not category.strip():
+                st.error("Please enter a category")
+            elif amount <= 0:
+                st.error("Amount must be greater than 0")
+            else:
+                transaction = Transaction(
+                    id=str(uuid.uuid4()),
+                    amount=amount,
+                    category=category.strip().title(),
+                    date=transaction_date,
+                    description=description.strip(),
+                )
+
+                save_transaction(transaction)
+                st.success(f"Added €{amount:.2f} for {category.strip().title()}")
+                st.rerun()
+
+    st.divider()
 
     if not transactions:
-        st.info("No transactions yet.")
+        st.info("No transactions yet. Add one above to get started.")
         return
 
     # Filters
@@ -145,7 +202,10 @@ def page_transactions():
         )
 
     with col_sort:
-        sort_by = st.selectbox("Sort by", ["Date (newest)", "Date (oldest)", "Amount (high)", "Amount (low)"])
+        sort_by = st.selectbox(
+            "Sort by",
+            ["Date (newest)", "Date (oldest)", "Amount (high)", "Amount (low)"],
+        )
 
     filtered = [t for t in transactions if t.category in selected_categories]
 
@@ -237,9 +297,7 @@ def page_import():
     # Import button
     if st.button("Import Transactions", type="primary"):
         # Save uploaded file to temp path for import_bank_csv
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
 
@@ -296,7 +354,9 @@ def page_budgets():
 
     # Set new budget
     st.subheader("Set Budget")
-    all_categories = sorted(set(t.category for t in transactions)) if transactions else []
+    all_categories = (
+        sorted(set(t.category for t in transactions)) if transactions else []
+    )
 
     if not all_categories:
         st.info("Import transactions first to set budgets by category.")
@@ -309,15 +369,19 @@ def page_budgets():
     with col_limit:
         budget_limit = st.number_input("Monthly limit (€)", min_value=0.0, step=10.0)
     with col_btn:
-        st.write("")  # spacing
+        st.write("")
         if st.button("Set Budget"):
             if budget_limit > 0:
-                save_budget(Budget(
-                    category=budget_category,
-                    limit=budget_limit,
-                    period="monthly",
-                ))
-                st.success(f"Budget set: {budget_category} → €{budget_limit:,.2f}/month")
+                save_budget(
+                    Budget(
+                        category=budget_category,
+                        limit=budget_limit,
+                        period="monthly",
+                    )
+                )
+                st.success(
+                    f"Budget set: {budget_category} → €{budget_limit:,.2f}/month"
+                )
                 st.rerun()
             else:
                 st.warning("Please enter a budget amount greater than 0.")
