@@ -1,8 +1,10 @@
+import csv
+import io
 import tempfile
-from collections import defaultdict
-from pathlib import Path
 import uuid
+from collections import defaultdict
 from datetime import date
+from pathlib import Path
 
 import plotly.express as px
 import streamlit as st
@@ -11,7 +13,12 @@ from spend_ease.analysis import group_by_month
 from spend_ease.budget_storage import get_budget, load_budgets, save_budget
 from spend_ease.csv_handler import import_bank_csv
 from spend_ease.models import Budget, Transaction
-from spend_ease.storage import load_transactions, save_transaction
+from spend_ease.storage import (
+    delete_transaction,
+    load_transactions,
+    save_transaction,
+    update_transaction,
+)
 
 
 # Page config
@@ -51,7 +58,7 @@ def page_overview():
     transactions = load_transactions()
 
     if not transactions:
-        st.info("No transactions yet. Go to **Import** to load your bank CSV.")
+        st.info("No transactions yet. Go to **Import** to load your bank CSV or add transactions.")
         return
 
     total_spent = sum(t.amount for t in transactions)
@@ -220,17 +227,64 @@ def page_transactions():
 
     st.caption(f"Showing {len(filtered)} of {len(transactions)} transactions")
 
-    # Transaction table
+    # Editable transaction table
     table_data = [
         {
             "Date": str(t.date),
             "Category": t.category,
-            "Amount": f"€{t.amount:.2f}",
+            "Amount": t.amount,
             "Description": t.description,
+            "Delete": False,
         }
         for t in filtered
     ]
-    st.dataframe(table_data, width="stretch", hide_index=True)
+
+    edited = st.data_editor(
+        table_data,
+        column_config={
+            "Amount": st.column_config.NumberColumn("Amount (€)", format="€%.2f"),
+            "Delete": st.column_config.CheckboxColumn("Delete?"),
+        },
+        disabled=["Date"],
+        hide_index=True,
+        use_container_width=True,
+    )
+
+    if st.button("Apply Changes", type="primary"):
+        changes = 0
+        deletions = 0
+
+        for i, row in enumerate(edited):
+            original = filtered[i]
+
+            if row["Delete"]:
+                delete_transaction(original.id)
+                deletions += 1
+                continue
+
+            if (
+                row["Category"] != original.category
+                or row["Amount"] != original.amount
+                or row["Description"] != original.description
+            ):
+                updated = Transaction(
+                    id=original.id,
+                    amount=row["Amount"],
+                    category=row["Category"].strip().title(),
+                    date=original.date,
+                    description=row["Description"].strip(),
+                )
+                update_transaction(original.id, updated)
+                changes += 1
+
+        if changes > 0 or deletions > 0:
+            parts = []
+            if changes > 0:
+                parts.append(f"{changes} edited")
+            if deletions > 0:
+                parts.append(f"{deletions} deleted")
+            st.success(", ".join(parts))
+            st.rerun()
 
 
 # Import page
@@ -251,9 +305,6 @@ def page_import():
     if not lines:
         st.error("File is empty.")
         return
-
-    import csv
-    import io
 
     reader = csv.reader(io.StringIO(lines[0]))
     headers = next(reader)
