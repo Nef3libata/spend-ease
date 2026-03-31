@@ -58,7 +58,9 @@ def page_overview():
     transactions = load_transactions()
 
     if not transactions:
-        st.info("No transactions yet. Go to **Import** to load your bank CSV or add transactions.")
+        st.info(
+            "No transactions yet. Go to **Import** to load your bank CSV or add transactions."
+        )
         return
 
     total_spent = sum(t.amount for t in transactions)
@@ -413,29 +415,26 @@ def page_budgets():
         st.info("Import transactions first to set budgets by category.")
         return
 
-    col_cat, col_limit, col_btn = st.columns([3, 2, 1])
+    col_cat, col_limit = st.columns(2)
 
     with col_cat:
         budget_category = st.selectbox("Category", all_categories)
     with col_limit:
         budget_limit = st.number_input("Monthly limit (€)", min_value=0.0, step=10.0)
-    with col_btn:
-        st.write("")
-        if st.button("Set Budget"):
-            if budget_limit > 0:
-                save_budget(
-                    Budget(
-                        category=budget_category,
-                        limit=budget_limit,
-                        period="monthly",
-                    )
+
+    if st.button("Set Budget", type="primary"):
+        if budget_limit > 0:
+            save_budget(
+                Budget(
+                    category=budget_category,
+                    limit=budget_limit,
+                    period="monthly",
                 )
-                st.success(
-                    f"Budget set: {budget_category} → €{budget_limit:,.2f}/month"
-                )
-                st.rerun()
-            else:
-                st.warning("Please enter a budget amount greater than 0.")
+            )
+            st.success(f"Budget set: {budget_category} → €{budget_limit:,.2f}/month")
+            st.rerun()
+        else:
+            st.warning("Please enter a budget amount greater than 0.")
 
 
 # Page router
