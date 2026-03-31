@@ -1,12 +1,12 @@
 [project]
 name = "spend-ease"
-version = "2.0.0"
+version = "3.0.0"
 description = "A package that makes spending easier than ever"
 readme = "README.md"
 authors = [
     { name = "Samaneh Naghdbishi" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "matplotlib>=3.8.0",
     "streamlit>=1.30.0",
