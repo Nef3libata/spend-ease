@@ -1,30 +1,8 @@
 # SpendEase
 
-A smart financial tracker for international residents in Germany. Helping you understand your spending, optimize grocery costs, and save for what matters.
+A personal finance tracker for managing expenses, budgets, and financial insights.
 
-## Features
-
-### Transaction Management
-
-- **Quick Add** - `add 25 food lunch` (3 seconds, no flags!)
-- **Edit & Delete** - Fix mistakes or remove transactions
-- **CSV Import/Export** - Backup and bulk import your data
-
-### Analysis & Insights
-
-- **Spending Summary** - Category breakdown with budget warnings
-- **Monthly Trends** - Track spending patterns over time
-- **Visual Charts** - Generate pie and bar charts (PNG)
-
-### Budget Tracking
-
-- **Set Budgets** - Monthly limits per category
-- **Real-time Warnings** - See how much budget remains
-- **Smart Alerts** - Know when you're over budget
-
-## Quick Start
-
-### Installation
+## Installation
 
 ```bash
 git clone https://github.com/Nef3libata/spend-ease.git
@@ -32,152 +10,100 @@ cd spend-ease
 uv pip install -e .
 ```
 
-### Run SpendEase
+## Running the Application
 
+**CLI (Interactive REPL):**
 ```bash
-spend-ease
+uv run -m spend_ease
 ```
 
-Or with uv:
-
+**Web Dashboard:**
 ```bash
-uv run spend-ease
+uv run -m spend_ease dashboard
 ```
 
-## 📖 Usage
+## Core Features
 
-SpendEase uses an **interactive REPL** (Read-Eval-Print Loop) for fast, daily use:
+### 1. Transaction Management
+- Add transactions manually or via CSV import
+- Edit and delete existing transactions
+- Auto-categorization based on merchant names
+- Support for bank CSV format with column mapping
 
-```
-SpendEase 💰  Type 'help' for commands, 'quit' to exit.
+### 2. Budget Tracking
+- Set monthly spending limits per category
+- Real-time budget status with visual progress bars
+- Warnings when approaching or exceeding limits
 
->> help
-Commands:
-  add <amount> <category> [description]   Add a transaction
-  add                                     Add interactively
-  list                                    Show all transactions
-  summary                                 Spending summary with budgets
-  monthly                                 Monthly breakdown
-  edit                                    Edit a transaction
-  delete                                  Delete a transaction
-  budget set <category> <limit>           Set monthly budget
-  budget list                             Show all budgets
-  export [filename]                       Export to CSV
-  import <filename>                       Import from CSV
-  visualize [directory]                   Generate charts
-  quit                                    Exit
-```
+### 3. Financial Analysis
+- Monthly spending trends and breakdowns
+- Category-based spending summaries
+- Recurring payment detection (subscriptions, rent, etc.)
+- Balance forecasting based on income and spending patterns
+- Interactive charts (Plotly) and exportable PNG charts (Matplotlib)
 
-### Examples
+### 4. Two User Interfaces
+- **CLI**
+- **Web Dashboard**
 
-**Quick expense tracking:**
+## Usage Examples
 
-```
->> add 25 food lunch
-Saved! €25.00 for Food
-
->> add 2.90 transport bus
-Saved! €2.90 for Transport
-
->> add 89 rent monthly payment
-Saved! €89.00 for Rent
-```
-
-**Interactive add (with prompts):**
-
-```
->> add
-Amount: 12.50
-Category: Food
-Description (optional): Groceries
-Saved! €12.50 for Food
+### CLI Commands
+```bash
+>> add 25 food lunch              # Quick add
+>> list                           # View all transactions
+>> summary                        # Spending breakdown with budgets
+>> monthly                        # Monthly trends
+>> recurring                      # Detect recurring payments
+>> forecast 3                     # 3-month balance forecast
+>> budget set food 200            # Set category budget
+>> bank-import transactions.csv   # Import from bank CSV
+>> export backup.csv              # Export data
+>> visualize                      # Generate charts
 ```
 
-**View spending:**
+### Web Dashboard
+The dashboard (`http://localhost:8501`) provides:
+- **Overview**: Summary of spending, category pie chart, monthly bar chart
+- **Transactions**: Add, edit, delete with inline table editing
+- **Import**: Upload bank CSV with column mapping
+- **Budgets**: Set limits and track progress visually
 
+## Technical Implementation
+
+**Requirements:**
+- Python 3.10+
+- Installable package with `pyproject.toml`
+- Entry point via `__main__.py` (supports `uv run -m spend_ease`)
+
+**Key Technologies:**
+- **Type hints & dataclasses** for type safety
+- **Streamlit** for web dashboard
+- **Plotly** for interactive charts
+- **Matplotlib** for PNG export
+- **JSON** for local data persistence
+
+**Architecture:**
 ```
->> list
-=================================================================
-YOUR TRANSACTIONS
-=================================================================
-  1. 2026-03-20 | Food         | €   25.00 | lunch
-  2. 2026-03-20 | Transport    | €    2.90 | bus
-  3. 2026-03-20 | Rent         | €   89.00 | monthly payment
-=================================================================
-     TOTAL: €116.90  (3 transactions)
-=================================================================
-```
-
-**Check budget status:**
-
-```
->> summary
-==========================================================================================
-SPENDING SUMMARY
-==========================================================================================
-Category        |      Spent |     Budget | Status          |      % | Count
-------------------------------------------------------------------------------------------
-Rent            | €    89.00 |          - | no budget       |  76.1% |     1
-Food            | €    25.00 |    €100.00 | €75.00 left     |  21.4% |     1
-Transport       | €     2.90 |     €50.00 | €47.10 left     |   2.5% |     1
-==========================================================================================
-TOTAL           | €   116.90
-==========================================================================================
-```
-
-**Set budgets:**
-
-```
->> budget set food 200
-Budget set: Food → €200.00/month
-
->> budget set transport 50
-Budget set: Transport → €50.00/month
-
->> budget list
-=============================================
-YOUR BUDGETS
-=============================================
-  Food                 €200.00/month
-  Transport            €50.00/month
-=============================================
+src/spend_ease/
+├── __main__.py          # Entry point (CLI/dashboard router)
+├── cli.py               # CLI interface with all commands
+├── dashboard.py         # Streamlit web UI (4 pages)
+├── models.py            # Transaction & Budget dataclasses
+├── storage.py           # Transaction operations
+├── budget_storage.py    # Budget persistence
+├── settings.py          # User settings (income, balance)
+├── analysis.py          # Monthly aggregation
+├── categories.py        # Auto-categorization rules
+├── csv_handler.py       # Generic CSV import/export
+├── recurring.py         # Recurring payment detection
+├── forecast.py          # Balance forecasting algorithm
+└── visualize.py         # Chart generation
 ```
 
-**Generate visual reports:**
+**Data Storage:**
+All data stored locally in `~/.spend_ease/` as JSON files (transactions, budgets, settings).
 
-```
->> visualize
-Generating charts...
-  Pie chart  → ./spending_by_category.png
-  Bar chart  → ./monthly_spending.png
-```
-
-**Backup your data:**
-
-```
->> export backup.csv
-Exported to backup.csv
-
->> import backup.csv
-Imported 15 transaction(s)
-```
-
-## 📁 Data Storage
-
-All data is stored locally in `~/.spend_ease/`:
-
-- `storage.json` - Your transactions
-- `budgets.json` - Your budget settings
-
-Data is stored in human-readable JSON format for easy backup and portability.
-
-## 🛠️ Technical Details
-
-**Built with:**
-
-- Python 3.13+ with type hints and dataclasses
-- Matplotlib for data visualization
-
-## 📄 License
+## License
 
 MIT
