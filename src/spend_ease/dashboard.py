@@ -175,7 +175,7 @@ def page_transactions():
 
             description = st.text_input("Description (optional)")
 
-        if st.button("Add Transaction", type="primary", use_container_width=True):
+        if st.button("Add Transaction", type="primary", width="stretch"):
             if not category or not category.strip():
                 st.error("Please enter a category")
             elif amount <= 0:
@@ -249,7 +249,7 @@ def page_transactions():
         },
         disabled=["Date"],
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
     if st.button("Apply Changes", type="primary"):
